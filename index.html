@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محرر HTML السريع</title>
+    <title> HTML محرر</title>
+    
+  <meta name="theme-color" content="#F7F7F7">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-1440.png">
+  <link rel="apple-touch-icon" href="icon-1440.png">
     
     <!-- CodeMirror Library Files -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
@@ -554,6 +559,10 @@
             document.getElementById('page-title').addEventListener('click', () => location.reload());
         });
     </script>
+    
+    <script>
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(registration => { console.log('SW registration successful:', registration.scope); }).catch(err => { console.log('SW registration failed:', err); }); }); }
+  </script>
     
 </body>
 </html>
