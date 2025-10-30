@@ -1,0 +1,16 @@
+{
+    "name": "HTML Editor",
+    "short_name": "HTML Editor",
+    "description": "A simple website for editing HTML files.",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#F7F7F7",
+    "icons": [
+        {
+            "src": "icon-1440.png",
+            "sizes": "1440x1440",
+            "type": "image/png"
+        }
+    ]
+}

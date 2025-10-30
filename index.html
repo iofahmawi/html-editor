@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> HTML محرر</title>
+    
+  <meta name="theme-color" content="#F7F7F7">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-1440.png">
+  <link rel="apple-touch-icon" href="icon-1440.png">
+    
+    <!-- CodeMirror Library Files -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/jump-to-line.min.js"></script>
+
+    <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+    <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+
+
+    <style>
+        /* Light Mode Variables (Default) */
+        :root {
+            --primary-color: #007acc;
+            --primary-hover: #005f9e;
+            --secondary-color: #333;
+            --secondary-hover: #555;
+            
+            --bg-color: #ffffff;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --toolbar-bg: #f7f7f7;
+            --modal-bg: #fefefe;
+            --footer-text-color: #888;
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --toolbar-bg: #1e1e1e;
+            --modal-bg: #2a2a2a;
+            --footer-text-color: #666;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 10px 20px;
+            flex-shrink: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            background-color: var(--toolbar-bg);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .toolbar-btn {
+            background-color: var(--secondary-color);
+            color: white; 
+            padding: 8px 18px; 
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+        }
+
+        .toolbar-btn.icon-btn {
+            padding: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar-btn:hover {
+            background-color: var(--secondary-hover);
+        }
+        
+        .toolbar-btn.primary {
+             background-color: var(--primary-color);
+        }
+        .toolbar-btn.primary:hover {
+             background-color: var(--primary-hover);
+        }
+
+        #editor-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .CodeMirror {
+            border: none;
+            height: 100%;
+            font-size: 13px;
+            direction: ltr;
+            line-height: 1.6;
+        }
+        
+        .CodeMirror pre.CodeMirror-line {
+            padding-left: 15px;
+        }
+        
+        #upload-view {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 5%;
+            align-items: center;
+            flex-grow: 1;
+            box-sizing: border-box;
+        }
+        
+        #editor-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            flex-grow: 1;
+        }
+        
+        h1 { 
+            color: var(--primary-color); 
+            text-align: center; 
+            margin: 0 0 20px 0;
+            font-size: 1.8em;
+        }
+
+        .upload-area {
+            padding: 25px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: border-color 0.3s, background-color 0.3s;
+            width: 70%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .upload-area:hover, .upload-area:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: #fafafa;
+        }
+        
+        body.dark-mode .upload-area:hover,
+        body.dark-mode .upload-area:focus {
+            background-color: #1a1a1a;
+        }
+
+        .upload-label {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        #file-input { display: none; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: var(--modal-bg);
+            color: var(--text-color);
+            margin: auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .modal-content h2 { text-align: center; }
+        
+        .modal-content label[for="find-text"],
+        .modal-content label[for="replace-text"] {
+            display: block;
+            width: 90%;
+            margin: 10px auto 0 auto;
+            text-align: right;
+        }
+
+        .modal-content textarea {
+            display: block;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 8px; 
+            margin-top: 5px; 
+            text-align: left; 
+            direction: ltr;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            resize: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: border-color 0.3s;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .modal-content input:focus, .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal-buttons { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        .close { color: #aaa; float: left; font-size: 28px; font-weight: bold; cursor: pointer; }
+
+        .page-footer {
+            padding: 10px 0;
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--footer-text-color);
+            flex-shrink: 0;
+            transition: color 0.3s;
+        }
+
+        .page-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .page-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .sun-icon { display: none; }
+        body.dark-mode .sun-icon { display: block; }
+        body.dark-mode .moon-icon { display: none; }
+    </style>
+</head>
+<body>
+    
+    <div id="upload-view">
+        <h1 id="page-title" style="cursor: pointer; user-select: none;">محرر HTML السريع</h1>
+        <div class="upload-area" id="upload-area-clickable">
+            <p style="font-size: 1.2em; font-weight: bold;">اضغط هنا لرفع ملف HTML</p>
+            <p>أو قم بسحب وإفلات الملف في هذه المنطقة</p>
+            <span class="upload-label">اختيار ملف</span>
+        </div>
+        <input type="file" id="file-input" accept=".html,.htm">
+    </div>
+
+    <div id="editor-view">
+        <div class="toolbar">
+            <button class="toolbar-btn icon-btn" id="dark-mode-btn" title="تبديل الوضع">
+                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            </button>
+            <button class="toolbar-btn" id="run-btn">تشغيل</button>
+            <button class="toolbar-btn primary" id="save-btn">حفظ</button>
+            <button class="toolbar-btn" id="format-btn">تنسيق</button>
+            <button class="toolbar-btn" id="find-replace-btn">بحث</button>
+        </div>
+        <div id="editor-container">
+            <textarea id="code-editor"></textarea>
+        </div>
+    </div>
+    
+    <div id="findReplaceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-modal-btn">&times;</span>
+            <h2>بحث واستبدال</h2>
+            <label for="find-text">بحث عن:</label>
+            <textarea id="find-text" rows="4"></textarea>
+            <label for="replace-text">استبدال بـ:</label>
+            <textarea id="replace-text" rows="4"></textarea>
+            <div style="text-align: center; margin-top: 10px;">
+                <label for="case-sensitive-checkbox" style="display: inline-block; margin-top: 0; vertical-align: middle;">حساسية الأحرف</label>
+                <input type="checkbox" id="case-sensitive-checkbox" style="width: auto; vertical-align: middle;">
+            </div>
+            <div class="modal-buttons">
+                <button id="find-btn" class="toolbar-btn primary">بحث</button>
+                <button id="replace-btn" class="toolbar-btn">استبدال</button>
+                <button id="replace-all-btn" class="toolbar-btn">استبدال الكل</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        تم التطوير بواسطة 
+        <a href="https://github.com/iofahmawi" target="_blank" rel="noopener noreferrer">iofahmawi</a>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadView = document.getElementById('upload-view');
+            const editorView = document.getElementById('editor-view');
+            const fileInput = document.getElementById('file-input');
+            const uploadArea = document.getElementById('upload-area-clickable');
+            const codeEditorElement = document.getElementById('code-editor');
+            
+            const darkModeBtn = document.getElementById('dark-mode-btn');
+            const runBtn = document.getElementById('run-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const findReplaceBtn = document.getElementById('find-replace-btn');
+            const formatBtn = document.getElementById('format-btn');
+            
+            const findReplaceModal = document.getElementById('findReplaceModal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            let currentFileName = 'edited.html';
+            let editor;
+
+            // Dark Mode Toggle Logic
+            darkModeBtn.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+            });
+
+            const initializeEditor = (value = '') => {
+                if (editor) {
+                    editor.setValue(value);
+                    return;
+                }
+                editor = CodeMirror.fromTextArea(codeEditorElement, {
+                    lineNumbers: true,
+                    mode: "htmlmixed",
+                    theme: "material-darker",
+                    lineWrapping: true,
+                    extraKeys: {"F3": "findNext", "Shift-F3": "findPrev"}
+                });
+                editor.setValue(value);
+            };
+
+            const showEditor = () => {
+                uploadView.style.display = 'none';
+                editorView.style.display = 'flex';
+                setTimeout(() => editor.refresh(), 1); 
+            };
+
+            const handleFileSelect = (file) => {
+                if (file && (file.type === "text/html" || file.name.endsWith('.htm') || file.name.endsWith('.html'))) {
+                    currentFileName = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        initializeEditor(e.target.result);
+                        showEditor();
+                    };
+                    reader.onerror = () => alert('حدث خطأ أثناء قراءة الملف.');
+                    reader.readAsText(file);
+                } else {
+                    alert('يرجى اختيار ملف بامتداد .html أو .htm');
+                }
+            };
+            
+            fileInput.addEventListener('change', (e) => e.target.files.length > 0 && handleFileSelect(e.target.files[0]));
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); uploadArea.style.borderColor = 'var(--primary-color)'; });
+            uploadArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); uploadArea.style.borderColor = 'var(--border-color)'; });
+            uploadArea.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); uploadArea.style.borderColor = 'var(--border-color)'; e.dataTransfer.files.length > 0 && handleFileSelect(e.dataTransfer.files[0]); });
+
+            runBtn.addEventListener('click', () => {
+                if (!editor) return;
+                const code = editor.getValue();
+                const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 1000); 
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const content = editor.getValue();
+                const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = currentFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            });
+
+            formatBtn.addEventListener('click', () => {
+                if (!editor) return;
+                try {
+                    const currentCode = editor.getValue();
+                    const formattedCode = prettier.format(currentCode, { parser: "html", plugins: prettierPlugins });
+                    editor.setValue(formattedCode);
+                    alert('تم تنسيق الكود بنجاح.');
+                } catch (error) {
+                    console.error("Formatting error:", error);
+                    alert('حدث خطأ أثناء تنسيق الكود. قد يحتوي الملف على أخطاء جسيمة.');
+                }
+            });
+            
+            // --- START: MODIFIED FIND/REPLACE CODE ---
+            let searchCursor;
+
+            // دالة جديدة ومنفصلة للبحث عن النص وتحديده
+            const findAndSelectNext = () => {
+                if (!searchCursor) return false;
+
+                // البحث عن النتيجة التالية من موقع المؤشر الحالي
+                if (searchCursor.findNext()) {
+                    editor.setSelection(searchCursor.from(), searchCursor.to());
+                    editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
+                    return true;
+                }
+
+                // إذا لم يتم العثور على نتيجة، يتم الانتقال إلى بداية المستند والبحث مرة أخرى
+                const findText = document.getElementById('find-text').value;
+                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
+                searchCursor = editor.getSearchCursor(findText, { line: 0, ch: 0 }, { caseFold: !isCaseSensitive });
+                
+                if (searchCursor.findNext()) {
+                    editor.setSelection(searchCursor.from(), searchCursor.to());
+                    editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
+                    return true;
+                }
+
+                // إذا لم يتم العثور على أي نتيجة في المستند بأكمله
+                searchCursor = null;
+                return false;
+            };
+            
+            // دالة بدء البحث (يتم استدعاؤها عند الضغط على زر "بحث")
+            const startSearch = () => {
+                if (!editor) return;
+                const findText = document.getElementById('find-text').value;
+                if (!findText) return;
+
+                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
+                // إنشاء مؤشر بحث جديد يبدأ من موقع المؤشر في المحرر
+                searchCursor = editor.getSearchCursor(findText, editor.getCursor(), { caseFold: !isCaseSensitive });
+
+                if (findAndSelectNext()) {
+                    editor.focus();
+                    findReplaceModal.style.display = "none"; // إغلاق النافذة عند العثور على نتيجة
+                } else {
+                    alert('لم يتم العثور على النص.'); // إظهار رسالة فقط إذا لم يتم العثور على أي نتيجة
+                }
+            };
+
+            findReplaceBtn.addEventListener('click', () => {
+                const findInput = document.getElementById('find-text');
+                
+                if (editor && editor.getSelection()) {
+                    findInput.value = editor.getSelection();
+                }
+
+                findReplaceModal.style.display = 'flex';
+                findInput.focus();
+                findInput.select();
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                 findReplaceModal.style.display = "none";
+            });
+
+            const findBtn = document.getElementById('find-btn');
+            const replaceBtn = document.getElementById('replace-btn');
+            const replaceAllBtn = document.getElementById('replace-all-btn');
+
+            findBtn.addEventListener('click', startSearch);
+
+            replaceBtn.addEventListener('click', () => {
+                if (!editor) return;
+                const replaceText = document.getElementById('replace-text').value;
+                const findText = document.getElementById('find-text').value;
+                if (!findText) return;
+
+                // استبدال النص المحدد حاليًا
+                if (editor.getSelection()) {
+                    editor.replaceSelection(replaceText);
+                }
+
+                // البحث عن النتيجة التالية بعد الاستبدال (بدون إظهار رسالة خطأ)
+                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
+                searchCursor = editor.getSearchCursor(findText, editor.getCursor(), { caseFold: !isCaseSensitive });
+
+                // إذا تم العثور على نتيجة تالية، يتم تحديدها وإغلاق النافذة
+                if (findAndSelectNext()) {
+                    editor.focus();
+                    findReplaceModal.style.display = "none";
+                }
+                // إذا لم يتم العثور على نتيجة تالية، لا يحدث أي شيء، وتبقى النافذة مفتوحة
+            });
+
+            replaceAllBtn.addEventListener('click', () => {
+                if (!editor) return;
+                const findText = document.getElementById('find-text').value;
+                const replaceText = document.getElementById('replace-text').value;
+                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
+                if (!findText) return;
+                
+                const allCursor = editor.getSearchCursor(findText, { line: 0, ch: 0 }, { caseFold: !isCaseSensitive });
+                let count = 0;
+                editor.operation(() => {
+                    while (allCursor.findNext()) {
+                        allCursor.replace(replaceText);
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    alert(`تم استبدال ${count} نتيجة.`);
+                    findReplaceModal.style.display = "none";
+                } else {
+                    alert('لم يتم العثور على أي نتائج للاستبدال.');
+                }
+            });
+            // --- END: MODIFIED FIND/REPLACE CODE ---
+
+            window.onclick = (event) => {
+                if (event.target == findReplaceModal) findReplaceModal.style.display = "none";
+            };
+            
+            document.getElementById('page-title').addEventListener('click', () => location.reload());
+        });
+    </script>
+    
+    <script>
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(registration => { console.log('SW registration successful:', registration.scope); }).catch(err => { console.log('SW registration failed:', err); }); }); }
+  </script>
+    
+</body>
+</html>
