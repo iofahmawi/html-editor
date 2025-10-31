@@ -1,88 +1,57 @@
-// --- إعدادات عامل الخدمة ---
-
-// اسم ذاكرة التخزين المؤقت. غيّر 'v1' إلى 'v2' عند إجراء أي تعديلات على الملفات المخزنة.
 const CACHE_NAME = 'html-editor-cache-v1';
-
-// قائمة بالملفات الأساسية للتطبيق التي سيتم تخزينها مؤقتًا للعمل دون اتصال.
-// هذه هي "قشرة التطبيق" (App Shell).
 const urlsToCache = [
-  './', // <-- مهم جدًا لـ GitHub Pages: يشير إلى الصفحة الرئيسية للمشروع
-  'index.html', // ملف HTML الرئيسي
-  'manifest.json', // ملف البيان الخاص بالتطبيق
-
-  // يمكنك إضافة ملف JS الرئيسي هنا إذا قمت بفصله
-  // 'main.js',
-
-  // يمكنك إضافة مجلد الأيقونات هنا
-  // 'images/icon-192x192.png',
-  // 'images/icon-512x512.png',
-  
-  // الموارد الخارجية (CDNs) التي يعتمد عليها الموقع
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap',
-  'https://cdn.plyr.io/3.7.8/plyr.css',
-  'https://unpkg.com/@phosphor-icons/web',
-  'https://cdn.jsdelivr.net/npm/hls.js@latest',
-  'https://cdn.plyr.io/3.7.8/plyr.polyfilled.js',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Flag_of_Jordan.svg/60px-Flag_of_Jordan.svg.png'
+  './',
+  'index.html',
+  'manifest.json',
+  'icon-1440.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/jump-to-line.min.js',
+  'https://unpkg.com/prettier@2.8.8/standalone.js',
+  'https://unpkg.com/prettier@2.8.8/parser-html.js'
 ];
 
-
-// --- مراحل حياة عامل الخدمة ---
-
-// 1. مرحلة التثبيت (Install)
-// يتم تفعيل هذا الحدث عند تسجيل عامل الخدمة لأول مرة.
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installing...');
-  
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Caching App Shell...');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => {
-        console.error('Service Worker: Caching failed', err);
+        return cache.addAll(urlsToCache)
+          .catch(err => {
+            console.error('Failed to cache one or more resources during install:', err);
+          });
       })
   );
 });
 
-
-// 2. مرحلة التفعيل (Activate)
-// يتم تفعيل هذا الحدث بعد التثبيت، وظيفته هي تنظيف أي بيانات قديمة.
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating...');
-  
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
-          // إذا كان اسم الـ cache لا يطابق الاسم الحالي، يتم حذفه.
           if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Clearing Old Cache');
             return caches.delete(cache);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-
-// 3. مرحلة الجلب (Fetch)
-// يعترض هذا الحدث جميع طلبات الشبكة الصادرة من الصفحة.
 self.addEventListener('fetch', event => {
-  // استخدم استراتيجية "Cache First": حاول جلب المورد من ذاكرة التخزين أولاً.
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // إذا كان المورد موجودًا في الـ cache، قم بإرجاعه مباشرة.
-        if (response) {
-          return response;
-        }
-        
-        // إذا لم يكن موجودًا، اطلبه من الشبكة كالمعتاد.
-        return fetch(event.request);
+        return response || fetch(event.request);
       })
   );
 });
