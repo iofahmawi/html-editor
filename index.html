@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML محرر</title>
+    <title> HTML محرر</title>
     
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#F7F7F7">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-1440.png">
   <link rel="apple-touch-icon" href="icon-1440.png">
@@ -322,7 +322,7 @@
                 <input type="checkbox" id="case-sensitive-checkbox" style="width: auto; vertical-align: middle;">
             </div>
             <div class="modal-buttons">
-                <button id="find-btn" class="toolbar-btn primary">بحث</button>
+                <button id="find-btn" class="toolbar-btn primary">بحث عن التالي</button>
                 <button id="replace-btn" class="toolbar-btn">استبدال</button>
                 <button id="replace-all-btn" class="toolbar-btn">استبدال الكل</button>
             </div>
@@ -369,6 +369,10 @@
                     mode: "htmlmixed",
                     theme: "material-darker",
                     lineWrapping: true,
+                    // --- START: FIXES FOR SELECTION & CONTEXT MENU ---
+                    inputStyle: "contenteditable", //  Use contenteditable for better mobile/native context menu support
+                    viewportMargin: Infinity,      //  Helps prevent losing selection on scroll for moderately sized files
+                    // --- END: FIXES FOR SELECTION & CONTEXT MENU ---
                     extraKeys: {"F3": "findNext", "Shift-F3": "findPrev"}
                 });
                 editor.setValue(value);
@@ -437,55 +441,43 @@
             
             // --- START: MODIFIED FIND/REPLACE CODE ---
             let searchCursor;
+            let lastSearchQuery = '';
 
-            // دالة جديدة ومنفصلة للبحث عن النص وتحديده
-            const findAndSelectNext = () => {
-                if (!searchCursor) return false;
-
-                // البحث عن النتيجة التالية من موقع المؤشر الحالي
-                if (searchCursor.findNext()) {
-                    editor.setSelection(searchCursor.from(), searchCursor.to());
-                    editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
-                    return true;
-                }
-
-                // إذا لم يتم العثور على نتيجة، يتم الانتقال إلى بداية المستند والبحث مرة أخرى
-                const findText = document.getElementById('find-text').value;
-                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
-                searchCursor = editor.getSearchCursor(findText, { line: 0, ch: 0 }, { caseFold: !isCaseSensitive });
-                
-                if (searchCursor.findNext()) {
-                    editor.setSelection(searchCursor.from(), searchCursor.to());
-                    editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
-                    return true;
-                }
-
-                // إذا لم يتم العثور على أي نتيجة في المستند بأكمله
-                searchCursor = null;
-                return false;
-            };
-            
-            // دالة بدء البحث (يتم استدعاؤها عند الضغط على زر "بحث")
-            const startSearch = () => {
+            const findNext = () => {
                 if (!editor) return;
                 const findText = document.getElementById('find-text').value;
                 if (!findText) return;
-
+                
                 const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
-                // إنشاء مؤشر بحث جديد يبدأ من موقع المؤشر في المحرر
-                searchCursor = editor.getSearchCursor(findText, editor.getCursor(), { caseFold: !isCaseSensitive });
 
-                if (findAndSelectNext()) {
-                    editor.focus();
-                    findReplaceModal.style.display = "none"; // إغلاق النافذة عند العثور على نتيجة
-                } else {
-                    alert('لم يتم العثور على النص.'); // إظهار رسالة فقط إذا لم يتم العثور على أي نتيجة
+                //  If the search query has changed, or no cursor exists, create a new one
+                if (lastSearchQuery !== findText || !searchCursor) {
+                    lastSearchQuery = findText;
+                    searchCursor = editor.getSearchCursor(findText, editor.getCursor(), { caseFold: !isCaseSensitive });
                 }
+
+                if (searchCursor.findNext()) {
+                    editor.setSelection(searchCursor.from(), searchCursor.to());
+                    editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
+                } else {
+                    //  If not found, start from the beginning of the file
+                    alert('وصلت إلى نهاية الملف. سيبدأ البحث من البداية.');
+                    searchCursor = editor.getSearchCursor(findText, { line: 0, ch: 0 }, { caseFold: !isCaseSensitive });
+                    if (searchCursor.findNext()) {
+                        editor.setSelection(searchCursor.from(), searchCursor.to());
+                        editor.scrollIntoView({ from: searchCursor.from(), to: searchCursor.to() }, 150);
+                    } else {
+                        alert('لم يتم العثور على النص.');
+                    }
+                }
+                 editor.focus();
             };
+            
 
             findReplaceBtn.addEventListener('click', () => {
                 const findInput = document.getElementById('find-text');
                 
+                //  Populate search input with currently selected text
                 if (editor && editor.getSelection()) {
                     findInput.value = editor.getSelection();
                 }
@@ -493,39 +485,38 @@
                 findReplaceModal.style.display = 'flex';
                 findInput.focus();
                 findInput.select();
+                
+                // Reset last search to ensure the first click on "Find Next" starts a new search
+                lastSearchQuery = ''; 
+                searchCursor = null;
             });
             
             closeModalBtn.addEventListener('click', () => {
                  findReplaceModal.style.display = "none";
+                 editor.focus(); // Return focus to the editor
             });
 
             const findBtn = document.getElementById('find-btn');
             const replaceBtn = document.getElementById('replace-btn');
             const replaceAllBtn = document.getElementById('replace-all-btn');
 
-            findBtn.addEventListener('click', startSearch);
+            findBtn.addEventListener('click', findNext);
 
             replaceBtn.addEventListener('click', () => {
-                if (!editor) return;
+                if (!editor || !searchCursor) return;
+                
                 const replaceText = document.getElementById('replace-text').value;
-                const findText = document.getElementById('find-text').value;
-                if (!findText) return;
-
-                // استبدال النص المحدد حاليًا
-                if (editor.getSelection()) {
-                    editor.replaceSelection(replaceText);
+                const currentSelection = editor.getSelection();
+                
+                // Ensure the current selection matches the search cursor's finding
+                if (currentSelection && searchCursor.from() && editor.getRange(searchCursor.from(), searchCursor.to()) === currentSelection) {
+                    searchCursor.replace(replaceText);
+                    // After replacing, automatically find the next occurrence
+                    findNext();
+                } else {
+                    // If nothing is selected or it doesn't match, just find the next occurrence
+                    findNext();
                 }
-
-                // البحث عن النتيجة التالية بعد الاستبدال (بدون إظهار رسالة خطأ)
-                const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
-                searchCursor = editor.getSearchCursor(findText, editor.getCursor(), { caseFold: !isCaseSensitive });
-
-                // إذا تم العثور على نتيجة تالية، يتم تحديدها وإغلاق النافذة
-                if (findAndSelectNext()) {
-                    editor.focus();
-                    findReplaceModal.style.display = "none";
-                }
-                // إذا لم يتم العثور على نتيجة تالية، لا يحدث أي شيء، وتبقى النافذة مفتوحة
             });
 
             replaceAllBtn.addEventListener('click', () => {
@@ -535,6 +526,7 @@
                 const isCaseSensitive = document.getElementById('case-sensitive-checkbox').checked;
                 if (!findText) return;
                 
+                // Start cursor from the beginning of the file
                 const allCursor = editor.getSearchCursor(findText, { line: 0, ch: 0 }, { caseFold: !isCaseSensitive });
                 let count = 0;
                 editor.operation(() => {
